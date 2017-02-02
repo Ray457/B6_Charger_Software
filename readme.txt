@@ -1,0 +1,1 @@
+A python program that reads the serial datagrams from a B6 charger and displays the charging curve
