@@ -28,17 +28,20 @@ def get_args():
     args = parser.parse_args()
 
     settings = {
-        "config_file":args.config_file
+        'config_file':args.config_file
         }
     return settings
 
 def get_settings(filename):
     """
-    reads from the file and check
+    may move into class Settings
     """
+    settings = {}
+    return settings
 
 def save_settings(filename, settings):
     """
+    may move into class Settings
     """
     pass
 
@@ -71,16 +74,17 @@ def save_plot():
 def cli_menus():
     """
     User interface in command line
+    may get changed to handle UI only
     """
     settings = get_args()
     data = get_settings(settings['config_file'])
     if data == -1:
         if get_input(
-                'Config file invalid. Create new settings? Y/N',
+                'Config file invalid. Create new settings?\nY/N ',
                 ['', 'Y', 'y', 'N', 'n'],
                 'Y').lower() == 'y':
-            save_settings(['config_file'], settings)
-
+            # save_settings(['config_file'], settings)
+            pass
 
 def get_input(prompt, expecting, default=None):
     """
@@ -102,7 +106,7 @@ def get_input(prompt, expecting, default=None):
             got = input("{}({})".format(prompt, default))
         if got in expecting:
             break
-    if ('' in expecting) and not (default is None) and (got == ''):
+    if ('' in expecting) and (default is not None) and (got == ''):
         got = default
     return got
 
@@ -120,6 +124,28 @@ class Settings:
     """
     to be done
     """
+    __filename = ''
+    __settings = {}
+    __configfile_io = None
+
+    def __init__(self, filename):
+        self.__filename = filename
+        self.__configfile_io = JsonIO(filename)
+
+    def save_settings(self):
+        """
+        Saves the current settings into the config file,
+        if it's not empty
+
+        Returns:
+            0: success
+            -1: empty settings
+            -2: file I/O error
+        """
+        if len(self.__settings) != 0:
+            ret_code = JsonIO.write_file(self.__settings)
+            return ret_code
+
 
 class JsonIO:
     """
@@ -155,25 +181,30 @@ class JsonIO:
             None
 
         Returns:
-            -1: empty or non-existent file
-            -2: incorrect format
-            -3: other errors
-            otherwise: result from json.loads()
+            (ret_val, data)
+            for ret_val:
+                0: success
+                -1: empty or non-existent file
+                -2: incorrect format
+                -3: other errors
+            for data:
+                None: error occurred
+                otherwise result from json.loads()
         """
         if not self.__validate_file():
-            return -1
+            return (-1, None)
         file = open(self.__filename, 'r')
         data = None
 
         try:
             data = json.loads(file.read())
         except ValueError:
-            return -2
+            return (-2, None)
         except:
-            return -3
+            return (-3, None)
         finally:
             file.close()
-        return data
+        return (0, data)
 
     def write_file(self, data):
         """
@@ -187,8 +218,8 @@ class JsonIO:
               refer to the official docs for details
 
         Returns:
+            0: success
             -1: error
-            otherwise: None
         """
         file = open(self.__filename, 'w')
 
@@ -198,6 +229,7 @@ class JsonIO:
             return -1
         finally:
             file.close()
+            return 0
 
 class Queue:
     """
@@ -230,11 +262,26 @@ class Queue:
         Dequeues an item from the head of queue
 
         Returns:
-            item: the stored item in the node
+            (ret_val, data)
+            for ret_val:
+                0: success
+                -1: empty queue
+            for data:
+                None: error occurred
+                otherwise item
         """
-        item = self.__head_node.get_data()
-        self.__head_node = self.__head_node.get_next()
-        return item
+        if self.is_empty():
+            return (-1, None)
+        else:
+            item = self.__head_node.get_data()
+            self.__head_node = self.__head_node.get_next()
+        return (0, item)
+
+    def is_empty(self):
+        """
+        Returns True if the queue is empty
+        """
+        return self.__head_node is None
 
 class Node:
     """
